@@ -194,7 +194,7 @@ These have exact answers and are checked against the seed data. All are computed
 | Rocks | `GET /teams/{id}/rocks` |
 | Meetings | `POST /teams/{id}/meetings`, `GET /meetings/{id}`, `POST /meetings/{id}/advance`, `POST /meetings/{id}/end`, `PUT /meetings/{id}/rating`, `GET /meetings/{id}/summary`, `WS /meetings/{id}/ws` |
 
-Conventions: JSON; ISO 8601 UTC timestamps; `week_start` as `YYYY-MM-DD`; errors as `{code, message, fields?}`; 401 unauthenticated, 403 forbidden, 404 for teams the user cannot see (avoids leaking existence), 409 conflict, 422 validation.
+Conventions: JSON; explicit Pydantic DTOs (`apps/api/app/dto/`); ISO 8601 UTC timestamps; `week_start` as `YYYY-MM-DD`; uniform `ApiResponse[T]` success envelope (`{success: true, data: T, meta: {request_id, timestamp}}`, collections wrapped in `{items: [...]}`) and `ApiErrorResponse` error envelope (`{success: false, error: {code, message, fields?}, meta: {request_id, timestamp}}`) with `X-Request-Id` correlation header; HTTP status codes remain authoritative (401 unauthenticated, 403 forbidden, 404 for teams the user cannot see to avoid leaking existence, 409 conflict, 422 validation). *(CLI `rules_report.json` stays unwrapped per starter `README.md`.)*
 
 ## 8. Real-Time Meeting and Concurrency (proposed)
 

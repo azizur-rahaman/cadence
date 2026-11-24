@@ -1,4 +1,4 @@
-"""Authentication, user profile, and team response/request schemas."""
+"""Authentication, user profile, team, and system health DTOs."""
 
 from __future__ import annotations
 
@@ -9,14 +9,24 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 RoleType = Literal["admin", "team_member", "observer"]
 
 
-class TeamOut(BaseModel):
+class HealthDto(BaseModel):
+    status: Literal["ok"] = "ok"
+    now: str
+    app_now: str
+
+
+class TeamDto(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
 
 
-class UserOut(BaseModel):
+class TeamListDto(BaseModel):
+    items: list[TeamDto]
+
+
+class UserDto(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
@@ -25,16 +35,20 @@ class UserOut(BaseModel):
     role: RoleType
 
 
-class UserWithTeamsOut(UserOut):
-    teams: list[TeamOut]
+class UserListDto(BaseModel):
+    items: list[UserDto]
 
 
-class LoginRequest(BaseModel):
+class UserWithTeamsDto(UserDto):
+    teams: list[TeamDto]
+
+
+class LoginRequestDto(BaseModel):
     user_id: str | None = Field(default=None, description="Seeded user ID (e.g., u1, u2)")
     email: str | None = Field(default=None, description="Seeded user email (case-insensitive)")
 
     @model_validator(mode="after")
-    def require_identifier(self) -> LoginRequest:
+    def require_identifier(self) -> LoginRequestDto:
         uid = (self.user_id or "").strip()
         mail = (self.email or "").strip()
         if not uid and not mail:
@@ -44,7 +58,7 @@ class LoginRequest(BaseModel):
         return self
 
 
-class LoginResponse(BaseModel):
+class LoginResponseDto(BaseModel):
     access_token: str
     token_type: Literal["bearer"] = "bearer"
-    user: UserWithTeamsOut
+    user: UserWithTeamsDto
