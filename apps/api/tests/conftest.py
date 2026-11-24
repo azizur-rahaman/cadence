@@ -7,14 +7,16 @@ from pathlib import Path
 
 import pytest
 from alembic.config import Config
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from alembic import command
 from app.cli.seed import seed_database
-from app.clock import FrozenClock, reset_default_clock
+from app.clock import FrozenClock, get_clock, reset_default_clock
 from app.config import get_settings
 from app.db import SessionLocal
+from app.main import create_app
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -50,3 +52,15 @@ def seeded_db() -> Generator[Session, None, None]:
         seed_database(db)
         yield db
         db.rollback()
+
+
+@pytest.fixture()
+def api_client(
+    seeded_db: Session, frozen_clock: FrozenClock
+) -> Generator[TestClient, None, None]:
+    """FastAPI TestClient backed by a freshly seeded DB and frozen APP_NOW clock."""
+    _ = seeded_db
+    app = create_app()
+    app.dependency_overrides[get_clock] = lambda: frozen_clock
+    with TestClient(app) as client:
+        yield client

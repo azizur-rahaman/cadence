@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.clock import Clock, format_utc_iso, get_clock
 from app.config import get_settings
+from app.errors import register_exception_handlers
+from app.routers import auth, teams
 
 
 def create_app() -> FastAPI:
@@ -24,6 +26,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    register_exception_handlers(app)
+
     @app.get("/api/health", tags=["System"])
     def health(clock: Clock = Depends(get_clock)) -> dict[str, str]:
         return {
@@ -31,6 +35,9 @@ def create_app() -> FastAPI:
             "now": format_utc_iso(clock.now()),
             "app_now": settings.app_now,
         }
+
+    app.include_router(auth.router, prefix="/api/v1")
+    app.include_router(teams.router, prefix="/api/v1")
 
     return app
 
