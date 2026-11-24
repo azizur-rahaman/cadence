@@ -27,6 +27,7 @@ from app.dto.issues import (
     SolveIssueRequestDto,
     UpdateIssuePriorityRequestDto,
 )
+from app.dto.rocks import MilestoneDto, RockDto, RockListDto, RockStatusDto
 from app.dto.scorecard import (
     GoalTypeDto,
     MakeIssueFromMeasurableRequestDto,
@@ -65,7 +66,11 @@ __all__ = [
     "MeasurableGoalDto",
     "MeasurableRowDto",
     "MeasurableStatusDto",
+    "MilestoneDto",
     "ResponseMetaDto",
+    "RockDto",
+    "RockListDto",
+    "RockStatusDto",
     "RoleType",
     "ScoreCellDto",
     "ScorecardResponseDto",
