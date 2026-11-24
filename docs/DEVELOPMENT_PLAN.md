@@ -2,43 +2,44 @@
 
 **Status:** Execution Plan (Source of Truth for Git Workflow & Delivery)  
 **Target Effort:** ~14.0 hours core (Phases 1–5) + optional stretch (Phase 6)  
-**Branching Model:** GitHub Feature Branch per Feature (1 Feature = 1 Branch = 1 Pull Request into `main`)  
+**Branching Model:** GitFlow-Lite (`feature/*` → `dev` → PR merge only → `main`; direct pushes to `main` are forbidden)  
 **Related Docs:** [`PRD.md`](./PRD.md) · [`JIRA-PLAN.md`](./JIRA-PLAN.md) · [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) · [`SIMPLIFIED.md`](./SIMPLIFIED.md)
 
 ---
 
 ## 1. GitHub Feature Branch & PR Governance
 
-Every piece of work is developed on its own short-lived feature branch cut from `main` and merged back via Pull Request only after passing its branch exit checks and quality gate.
+Every piece of work is developed on its own short-lived feature branch cut from `dev`, integrated into `dev`, and promoted from `dev` into `main` **exclusively via Pull Request merge on GitHub**.
 
 ### Branching Rules
 
-1. **`main` is always green:** Never commit directly to `main`. After every merge, `docker compose up`, `make report`, and `make verify` must pass cleanly.
-2. **One Feature = One Branch:** Every feature below has an exact branch name following `<type>/p<phase>-<feature-slug>` (`chore/`, `feat/`, `test/`, `docs/`).
-3. **Conventional Commits with Story Keys:** Prefix commits cleanly, e.g. `feat(scorecard): add atomic make-it-an-issue endpoint (E5-S3)`.
-4. **Delete merged branches:** Squash-merge (or clean merge commit) into `main`, then delete the feature branch so history stays clean and readable for evaluators.
+1. **`main` is Pull-Request Merge Only (Protected):** Never commit or push directly to `main`. `main` only receives changes through GitHub Pull Requests (`dev` → `main`), enforced by `AGENTS.md`, `.agents/rules/git-branching.md`, and the local `.git/hooks/pre-push` guard.
+2. **`dev` is the Active Integration & Push Branch:** Cut every feature branch off `dev`, push feature branches / integrate into `dev`, and open a PR from `dev` → `main` at the end of each phase (or verified milestone).
+3. **One Feature = One Branch:** Every feature below has an exact branch name following `<type>/p<phase>-<feature-slug>` (`chore/`, `feat/`, `test/`, `docs/`).
+4. **Conventional Commits with Story Keys:** Prefix commits cleanly, e.g. `feat(scorecard): add atomic make-it-an-issue endpoint (E5-S3)`.
+5. **Delete merged branches:** After merging a feature PR into `dev`, delete the feature branch so history stays clean and readable for evaluators.
 
 ### Standard Workflow for Every Feature Branch
 
 ```mermaid
 flowchart LR
-    A["Sync main"] --> B["Cut feature branch"]
+    A["Sync dev"] --> B["Cut feature branch"]
     B --> C["Build API + Tests + UI slice"]
     C --> D["Run make verify + Exit Check"]
-    D --> E["Commit & Push branch"]
-    E --> F["Open PR & Self-Review"]
-    F --> G["Merge to main & delete branch"]
+    D --> E["Push branch & PR to dev"]
+    E --> F["Merge to dev & delete branch"]
+    F --> G["Phase PR: dev -> main (PR Merge Only)"]
 ```
 
 ```bash
-# 1. Start every feature from an up-to-date main
-git checkout main && git pull origin main
+# 1. Start every feature from an up-to-date dev
+git checkout dev && git pull origin dev
 git checkout -b <branch-name>
 
 # 2. Build, test, and run the compulsory quality gate (from Phase 1 onward)
 make verify
 
-# 3. Commit, push, and open a PR to main
+# 3. Commit, push feature branch, and open PR into dev (NEVER push directly to main)
 git add -A
 git commit -m "<type>(<scope>): <summary> (<E#-S#>)"
 git push -u origin <branch-name>
@@ -83,7 +84,7 @@ flowchart TD
 ### Branch 1.1 — `chore/p1-monorepo-scaffold`
 - **Jira / PRD Refs:** `E1-S1`, `E1-S2`, `E1-S3` · `NFR-04`, `NFR-05`
 - **Estimate:** 1.0 h
-- **Depends On:** None (first branch off `main`)
+- **Depends On:** None (first branch off `dev`)
 - **Scope:**
   - Create lightweight polyglot monorepo layout (`apps/api/`, `apps/web/`, `e2e/`, `docs/test/`, `artifacts/`) without heavy orchestrators (no Turborepo/Nx).
   - Copy starter `seed.json` to `apps/api/seed/seed.json`.
