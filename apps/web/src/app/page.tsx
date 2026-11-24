@@ -11,7 +11,9 @@ import {
   Target,
 } from "lucide-react";
 import { AccessErrorView } from "@/components/layout/AccessErrorView";
+import { IssuesSection } from "@/components/sections/IssuesSection";
 import { ScorecardSection } from "@/components/sections/ScorecardSection";
+import { TodosSection } from "@/components/sections/TodosSection";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ApiClientError, fetchEligibleOwners, fetchHealth, fetchTeam } from "@/lib/api";
@@ -198,6 +200,10 @@ export default function TeamPage() {
       <section className="mt-6">
         {activeTab === "scorecard" && activeTeamId ? (
           <ScorecardSection teamId={activeTeamId} readOnly={isObserver} />
+        ) : activeTab === "issues" && activeTeamId ? (
+          <IssuesSection teamId={activeTeamId} readOnly={isObserver} />
+        ) : activeTab === "todos" && activeTeamId ? (
+          <TodosSection teamId={activeTeamId} readOnly={isObserver} />
         ) : (
           <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
             <Card>
