@@ -7,7 +7,7 @@ from datetime import date
 from decimal import Decimal
 from typing import cast
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response, status
 from sqlalchemy import select, text
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
@@ -32,6 +32,7 @@ from app.dto import (
 )
 from app.errors import AppError
 from app.models import Company, Issue, Measurable, Score, User
+from app.realtime.hub import notify_team_workspace_change
 from app.rules import (
     GoalType,
     MeasurableGoal,
@@ -247,6 +248,7 @@ def upsert_score(
     week_start: date,
     body: UpsertScoreRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     ctx: TeamAccessContext = Depends(require_team_write),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -304,6 +306,7 @@ def upsert_score(
         status=cell_status,
         unsolved_issue_id=unsolved_issue_id,
     )
+    notify_team_workspace_change(background_tasks, ctx.team.id, "scorecard", db)
     return ok(payload, request=request, clock=clock)
 
 
@@ -323,6 +326,7 @@ def make_issue_from_measurable(
     body: MakeIssueFromMeasurableRequestDto,
     request: Request,
     response: Response,
+    background_tasks: BackgroundTasks,
     ctx: TeamAccessContext = Depends(require_team_write),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -416,4 +420,5 @@ def make_issue_from_measurable(
         created=created,
         issue=_build_issue_dto(issue, owner_name),
     )
+    notify_team_workspace_change(background_tasks, ctx.team.id, "issues", db)
     return ok(payload, request=request, clock=clock)

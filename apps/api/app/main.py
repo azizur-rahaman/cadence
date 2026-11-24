@@ -8,7 +8,7 @@ from app.config import get_settings
 from app.dto import ApiResponse, HealthDto, ok
 from app.errors import register_exception_handlers
 from app.middleware import RequestIdMiddleware
-from app.routers import auth, issues, rocks, scorecard, teams, todos
+from app.routers import auth, issues, meetings, rocks, scorecard, teams, todos
 
 
 def create_app() -> FastAPI:
@@ -52,6 +52,7 @@ def create_app() -> FastAPI:
     app.include_router(issues.router, prefix="/api/v1")
     app.include_router(todos.router, prefix="/api/v1")
     app.include_router(rocks.router, prefix="/api/v1")
+    app.include_router(meetings.router, prefix="/api/v1")
 
     return app
 
