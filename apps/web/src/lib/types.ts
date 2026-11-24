@@ -194,3 +194,58 @@ export interface RockListDto {
   today: string;
   items: RockDto[];
 }
+
+export type MeetingSection = "scorecard" | "ids" | "conclude" | "ended";
+
+export interface MeetingAttendeeDto {
+  user_id: string;
+  name: string;
+  role: RoleType;
+  joined_at: string;
+}
+
+export interface MeetingRatingDto {
+  user_id: string;
+  name: string;
+  rating: number;
+  updated_at: string;
+}
+
+export interface MeetingTimerDto {
+  allotted_seconds: number;
+  elapsed_seconds: number;
+  remaining_seconds: number;
+  over_time: boolean;
+}
+
+export interface MeetingSummarySnapshotDto {
+  scorecard_week: string;
+  measurable_status: Record<string, MeasurableStatus>;
+  issues_solved: string[];
+  todos_created: string[];
+  attendee_ids: string[];
+  rating: number | null;
+}
+
+export interface MeetingStateDto {
+  id: string;
+  team_id: string;
+  facilitator_id: string;
+  facilitator_name: string;
+  section: MeetingSection;
+  section_started_at: string;
+  started_at: string;
+  ended_at: string | null;
+  scorecard_week: string;
+  server_now: string;
+  timer: MeetingTimerDto;
+  attendees: MeetingAttendeeDto[];
+  ratings: MeetingRatingDto[];
+  average_rating: number | null;
+  todos_created: TodoDto[];
+  summary: MeetingSummarySnapshotDto | null;
+}
+
+export interface ActiveMeetingResponseDto {
+  meeting: MeetingStateDto | null;
+}

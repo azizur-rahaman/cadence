@@ -5,7 +5,16 @@ from __future__ import annotations
 import uuid
 from typing import cast
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
@@ -15,12 +24,13 @@ from app.auth.deps import (
     TeamAccessContext,
     assert_team_read,
     assert_team_write,
+    authenticate_token,
     get_current_user,
     require_team_read,
     require_team_write,
 )
 from app.clock import Clock, get_clock
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.dto import (
     ActiveMeetingResponseDto,
     ApiErrorResponse,
@@ -32,6 +42,7 @@ from app.dto import (
 )
 from app.errors import AppError
 from app.models import Company, Meeting, MeetingAttendee, MeetingRating, MeetingSummary, User
+from app.realtime.hub import meeting_hub
 from app.rules import (
     NEXT_SECTION,
     MeetingSection,
@@ -41,6 +52,20 @@ from app.rules import (
 from app.services.meetings import build_and_store_meeting_summary, build_meeting_state_dto
 
 router = APIRouter(tags=["Meetings"])
+
+
+def _schedule_state_broadcast(
+    background_tasks: BackgroundTasks,
+    meeting_id: str,
+    event_type: str,
+    state: MeetingStateDto,
+) -> None:
+    payload = {
+        "type": event_type,
+        "meeting": state.model_dump(mode="json"),
+        "online_user_ids": meeting_hub.online_user_ids(meeting_id),
+    }
+    background_tasks.add_task(meeting_hub.broadcast, meeting_id, payload)
 
 
 def _load_meeting_or_404(meeting_id: str, db: Session) -> Meeting:
@@ -150,6 +175,7 @@ def get_meeting(
 def join_meeting(
     meeting_id: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -166,7 +192,9 @@ def join_meeting(
         )
         db.commit()
 
-    return ok(build_meeting_state_dto(meeting, db, clock), request=request, clock=clock)
+    state = build_meeting_state_dto(meeting, db, clock)
+    _schedule_state_broadcast(background_tasks, meeting.id, "attendee_joined", state)
+    return ok(state, request=request, clock=clock)
 
 
 @router.post(
@@ -182,6 +210,7 @@ def join_meeting(
 def advance_meeting(
     meeting_id: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -210,7 +239,9 @@ def advance_meeting(
 
     db.commit()
     db.refresh(meeting)
-    return ok(build_meeting_state_dto(meeting, db, clock), request=request, clock=clock)
+    state = build_meeting_state_dto(meeting, db, clock)
+    _schedule_state_broadcast(background_tasks, meeting.id, "state_updated", state)
+    return ok(state, request=request, clock=clock)
 
 
 @router.post(
@@ -226,6 +257,7 @@ def advance_meeting(
 def end_meeting(
     meeting_id: str,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -252,7 +284,9 @@ def end_meeting(
     db.commit()
     db.refresh(meeting)
 
-    return ok(build_meeting_state_dto(meeting, db, clock), request=request, clock=clock)
+    state = build_meeting_state_dto(meeting, db, clock)
+    _schedule_state_broadcast(background_tasks, meeting.id, "state_updated", state)
+    return ok(state, request=request, clock=clock)
 
 
 @router.put(
@@ -270,6 +304,7 @@ def submit_meeting_rating(
     meeting_id: str,
     body: SubmitRatingRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -305,7 +340,9 @@ def submit_meeting_rating(
     )
     db.commit()
 
-    return ok(build_meeting_state_dto(meeting, db, clock), request=request, clock=clock)
+    state = build_meeting_state_dto(meeting, db, clock)
+    _schedule_state_broadcast(background_tasks, meeting.id, "state_updated", state)
+    return ok(state, request=request, clock=clock)
 
 
 @router.get(
@@ -345,3 +382,90 @@ def get_meeting_summary(
         request=request,
         clock=clock,
     )
+
+
+@router.websocket("/meetings/{meeting_id}/ws")
+async def meeting_websocket(
+    websocket: WebSocket,
+    meeting_id: str,
+    token: str | None = Query(default=None),
+) -> None:
+    """Real-time meeting WebSocket: authenticates, records attendance, and streams snapshots."""
+    clock_provider = websocket.app.dependency_overrides.get(get_clock, get_clock)
+    clock: Clock = clock_provider()
+
+    with SessionLocal() as db:
+        try:
+            user = authenticate_token(token, db)
+        except AppError:
+            await websocket.close(code=4401)
+            return
+
+        meeting = db.get(Meeting, meeting_id)
+        if meeting is None:
+            await websocket.close(code=4404)
+            return
+
+        try:
+            assert_team_read(user, meeting.team_id, db)
+        except AppError:
+            await websocket.close(code=4404)
+            return
+
+        if meeting.ended_at is None:
+            db.execute(
+                pg_insert(MeetingAttendee)
+                .values(meeting_id=meeting.id, user_id=user.id, joined_at=clock.now())
+                .on_conflict_do_nothing(index_elements=["meeting_id", "user_id"])
+            )
+            db.commit()
+
+        user_id = user.id
+        state = build_meeting_state_dto(meeting, db, clock)
+
+    await meeting_hub.connect(meeting_id, websocket, user_id)
+    online = meeting_hub.online_user_ids(meeting_id)
+    await websocket.send_json(
+        {
+            "type": "snapshot",
+            "meeting": state.model_dump(mode="json"),
+            "online_user_ids": online,
+        }
+    )
+    await meeting_hub.broadcast(
+        meeting_id,
+        {
+            "type": "attendee_joined",
+            "meeting": state.model_dump(mode="json"),
+            "online_user_ids": online,
+        },
+    )
+
+    try:
+        while True:
+            msg = await websocket.receive_json()
+            if isinstance(msg, dict) and msg.get("type") == "ping":
+                await websocket.send_json({"type": "pong"})
+            elif isinstance(msg, dict) and msg.get("type") == "refresh":
+                with SessionLocal() as db:
+                    mt = db.get(Meeting, meeting_id)
+                    if mt is not None:
+                        fresh = build_meeting_state_dto(mt, db, clock)
+                        await websocket.send_json(
+                            {
+                                "type": "snapshot",
+                                "meeting": fresh.model_dump(mode="json"),
+                                "online_user_ids": meeting_hub.online_user_ids(meeting_id),
+                            }
+                        )
+    except WebSocketDisconnect:
+        pass
+    finally:
+        meeting_hub.disconnect(meeting_id, websocket)
+        await meeting_hub.broadcast(
+            meeting_id,
+            {
+                "type": "presence_updated",
+                "online_user_ids": meeting_hub.online_user_ids(meeting_id),
+            },
+        )

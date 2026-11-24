@@ -1,4 +1,5 @@
 import type {
+  ActiveMeetingResponseDto,
   ApiErrorResponse,
   ApiResponse,
   HealthDto,
@@ -6,6 +7,8 @@ import type {
   IssueListDto,
   LoginResponseDto,
   MakeIssueFromMeasurableResponseDto,
+  MeetingStateDto,
+  MeetingSummarySnapshotDto,
   ResponseMeta,
   RockListDto,
   ScorecardResponseDto,
@@ -228,4 +231,58 @@ export function toggleTodoDone(token: string, todoId: string, done: boolean) {
 
 export function fetchRocks(token: string, teamId: string) {
   return apiFetch<RockListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/rocks`, { token });
+}
+
+export function fetchActiveMeeting(token: string, teamId: string) {
+  return apiFetch<ActiveMeetingResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/meetings/active`,
+    { token },
+  );
+}
+
+export function startMeeting(token: string, teamId: string) {
+  return apiFetch<MeetingStateDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/meetings`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function fetchMeeting(token: string, meetingId: string) {
+  return apiFetch<MeetingStateDto>(`/api/v1/meetings/${encodeURIComponent(meetingId)}`, { token });
+}
+
+export function joinMeeting(token: string, meetingId: string) {
+  return apiFetch<MeetingStateDto>(`/api/v1/meetings/${encodeURIComponent(meetingId)}/join`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function advanceMeeting(token: string, meetingId: string) {
+  return apiFetch<MeetingStateDto>(`/api/v1/meetings/${encodeURIComponent(meetingId)}/advance`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function endMeeting(token: string, meetingId: string) {
+  return apiFetch<MeetingStateDto>(`/api/v1/meetings/${encodeURIComponent(meetingId)}/end`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function submitMeetingRating(token: string, meetingId: string, rating: number) {
+  return apiFetch<MeetingStateDto>(`/api/v1/meetings/${encodeURIComponent(meetingId)}/rating`, {
+    method: "PUT",
+    token,
+    body: { rating },
+  });
+}
+
+export function fetchMeetingSummary(token: string, meetingId: string) {
+  return apiFetch<MeetingSummarySnapshotDto>(
+    `/api/v1/meetings/${encodeURIComponent(meetingId)}/summary`,
+    { token },
+  );
 }
