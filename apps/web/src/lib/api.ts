@@ -1,0 +1,123 @@
+import type {
+  ApiErrorResponse,
+  ApiResponse,
+  HealthDto,
+  LoginResponseDto,
+  ResponseMeta,
+  TeamDto,
+  TeamListDto,
+  UserListDto,
+  UserWithTeamsDto,
+} from "./types";
+
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:8000";
+
+export class ApiClientError extends Error {
+  readonly status: number;
+  readonly code: string;
+  readonly fields?: Record<string, string>;
+  readonly requestId?: string;
+
+  constructor(params: {
+    status: number;
+    code: string;
+    message: string;
+    fields?: Record<string, string>;
+    requestId?: string;
+  }) {
+    super(params.message);
+    this.name = "ApiClientError";
+    this.status = params.status;
+    this.code = params.code;
+    this.fields = params.fields;
+    this.requestId = params.requestId;
+  }
+}
+
+export interface ApiResult<T> {
+  data: T;
+  meta: ResponseMeta;
+}
+
+interface FetchOptions {
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  token?: string | null;
+  body?: unknown;
+  signal?: AbortSignal;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  options: FetchOptions = {},
+): Promise<ApiResult<T>> {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (options.body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  if (options.token) {
+    headers["Authorization"] = `Bearer ${options.token}`;
+  }
+
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    method: options.method ?? "GET",
+    headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    signal: options.signal,
+    cache: "no-store",
+  });
+
+  const requestIdHeader = res.headers.get("X-Request-Id") ?? undefined;
+  let parsed: ApiResponse<T> | ApiErrorResponse | null = null;
+  try {
+    parsed = (await res.json()) as ApiResponse<T> | ApiErrorResponse;
+  } catch {
+    parsed = null;
+  }
+
+  if (!res.ok || !parsed || !parsed.success) {
+    const errBody = parsed && !parsed.success ? parsed : null;
+    throw new ApiClientError({
+      status: res.status,
+      code: errBody?.error.code ?? `HTTP_${res.status}`,
+      message: errBody?.error.message ?? res.statusText ?? "Request failed",
+      fields: errBody?.error.fields,
+      requestId: errBody?.meta.request_id ?? requestIdHeader,
+    });
+  }
+
+  return { data: parsed.data, meta: parsed.meta };
+}
+
+export function fetchHealth() {
+  return apiFetch<HealthDto>("/api/health");
+}
+
+export function fetchSeededUsers() {
+  return apiFetch<UserListDto>("/api/v1/auth/users");
+}
+
+export function loginAsUser(userId: string) {
+  return apiFetch<LoginResponseDto>("/api/v1/auth/login", {
+    method: "POST",
+    body: { user_id: userId },
+  });
+}
+
+export function fetchMe(token: string) {
+  return apiFetch<UserWithTeamsDto>("/api/v1/me", { token });
+}
+
+export function fetchTeams(token: string) {
+  return apiFetch<TeamListDto>("/api/v1/teams", { token });
+}
+
+export function fetchTeam(token: string, teamId: string) {
+  return apiFetch<TeamDto>(`/api/v1/teams/${encodeURIComponent(teamId)}`, { token });
+}
+
+export function fetchEligibleOwners(token: string, teamId: string) {
+  return apiFetch<UserListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/owners`, { token });
+}
