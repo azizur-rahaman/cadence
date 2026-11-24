@@ -12,7 +12,8 @@ RUN mkdir -p app && touch app/__init__.py \
     && pip install -e ".[dev]"
 
 COPY . .
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/app/entrypoint.sh"]
