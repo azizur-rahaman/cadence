@@ -2,10 +2,18 @@ import type {
   ApiErrorResponse,
   ApiResponse,
   HealthDto,
+  IssueDto,
+  IssueListDto,
   LoginResponseDto,
+  MakeIssueFromMeasurableResponseDto,
   ResponseMeta,
+  RockListDto,
+  ScorecardResponseDto,
   TeamDto,
   TeamListDto,
+  TodoDto,
+  TodoListDto,
+  UpsertScoreResponseDto,
   UserListDto,
   UserWithTeamsDto,
 } from "./types";
@@ -120,4 +128,104 @@ export function fetchTeam(token: string, teamId: string) {
 
 export function fetchEligibleOwners(token: string, teamId: string) {
   return apiFetch<UserListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/owners`, { token });
+}
+
+export function fetchScorecard(token: string, teamId: string) {
+  return apiFetch<ScorecardResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/scorecard`,
+    { token },
+  );
+}
+
+export function upsertScore(
+  token: string,
+  teamId: string,
+  measurableId: string,
+  weekStart: string,
+  value: number,
+) {
+  return apiFetch<UpsertScoreResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/measurables/${encodeURIComponent(measurableId)}/scores/${encodeURIComponent(weekStart)}`,
+    {
+      method: "PUT",
+      token,
+      body: { value },
+    },
+  );
+}
+
+export function makeIssueFromMeasurable(
+  token: string,
+  teamId: string,
+  measurableId: string,
+  weekStart: string,
+) {
+  return apiFetch<MakeIssueFromMeasurableResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/issues/from-measurable`,
+    {
+      method: "POST",
+      token,
+      body: { measurable_id: measurableId, week_start: weekStart },
+    },
+  );
+}
+
+export function fetchIssues(token: string, teamId: string) {
+  return apiFetch<IssueListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/issues`, { token });
+}
+
+export function createIssue(
+  token: string,
+  teamId: string,
+  payload: { title: string; owner_id?: string; priority?: number | null },
+) {
+  return apiFetch<IssueDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/issues`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function updateIssuePriority(token: string, issueId: string, priority: number | null) {
+  return apiFetch<IssueDto>(`/api/v1/issues/${encodeURIComponent(issueId)}`, {
+    method: "PATCH",
+    token,
+    body: { priority },
+  });
+}
+
+export function solveIssue(token: string, issueId: string, resolutionNote: string) {
+  return apiFetch<IssueDto>(`/api/v1/issues/${encodeURIComponent(issueId)}/solve`, {
+    method: "POST",
+    token,
+    body: { resolution_note: resolutionNote },
+  });
+}
+
+export function createTodoFromIssue(
+  token: string,
+  issueId: string,
+  payload: { title: string; owner_id: string; due_date?: string; meeting_id?: string },
+) {
+  return apiFetch<TodoDto>(`/api/v1/issues/${encodeURIComponent(issueId)}/todos`, {
+    method: "POST",
+    token,
+    body: payload,
+  });
+}
+
+export function fetchTodos(token: string, teamId: string) {
+  return apiFetch<TodoListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/todos`, { token });
+}
+
+export function toggleTodoDone(token: string, todoId: string, done: boolean) {
+  return apiFetch<TodoDto>(`/api/v1/todos/${encodeURIComponent(todoId)}`, {
+    method: "PATCH",
+    token,
+    body: { done },
+  });
+}
+
+export function fetchRocks(token: string, teamId: string) {
+  return apiFetch<RockListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/rocks`, { token });
 }
