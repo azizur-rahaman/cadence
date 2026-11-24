@@ -35,8 +35,10 @@ make up / make down                         # Start or stop the Docker Compose s
 make seed                                   # Re-run idempotent seed loader safely (no duplicates)
 make report                                 # Print rules_report JSON for current APP_NOW (frozen clock)
 APP_NOW=2026-11-16T15:00:00Z make report    # Run rules report at any alternate date
-make test                                   # Unattended full suite (Rules + DB + API + 2-browser Playwright)
-make verify                                 # Full gate: ruff + tsc --noEmit + make test + rules_report parity
+make test                                   # Unattended pytest suite (Rules + DB + API/RBAC/WS + 20x concurrency)
+make test-e2e                               # Two-browser Playwright E2E suite against live stack
+make verify                                 # Full gate: ruff + tsc --noEmit + make test
+python3 docs/test/run-all.py                # Local full driver: health + make verify + report parity + E2E
 ```
 
 ---
@@ -117,8 +119,6 @@ Run **`make test`** to execute all four verification layers unattended against a
 | **Architecture & Specs** | Antigravity (Gemini) | Cross-checked PRD, Jira Plan, Design System, and seed traps against brief | Locked two-page scope, DB partial unique indexes, and 5 decision tradeoffs |
 | **Rules Engine & Tests** | Antigravity (Gemini) | Drafted pure `apps/api/app/rules/*` functions and pytest suites | Hand-verified every `seed.json` trap (Nov 1 DST, `Decimal` half-up `12.5% → 13%` / `8.25 → 8.3`, exact 90%, `mt1`/`mt2` windows) |
 | **API, Real-Time & UI** | Antigravity (Gemini) | Scaffolded FastAPI routers, Alembic schema, WS hub, and shared React sections | Reviewed every RBAC dependency, atomic `ON CONFLICT` SQL, timer ownership, and two-browser Playwright sync |
-
-*(Updated at final submission in Phase 5 to reflect exact final implementation verification notes.)*
 
 ---
 
