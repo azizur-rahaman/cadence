@@ -17,6 +17,7 @@ from app.models import (
     Meeting,
     MeetingRating,
     MeetingSummary,
+    Rock,
     Score,
     Todo,
     User,
@@ -262,6 +263,93 @@ def test_db_rejects_blank_todo_title(seeded_db: Session) -> None:
             owner_id="u2",
             due_date=date(2026, 11, 18),
             created_at=datetime(2026, 11, 11, 15, 0, tzinfo=UTC),
+        )
+    )
+    with pytest.raises(IntegrityError):
+        seeded_db.commit()
+    seeded_db.rollback()
+
+
+def test_db_enforces_case_insensitive_email_uniqueness(seeded_db: Session) -> None:
+    seeded_db.add(
+        User(
+            id="u_case_dup",
+            company_id="co_1",
+            name="Avery Upper",
+            email="AVERY@ACME.TEST",
+            role="admin",
+        )
+    )
+    with pytest.raises(IntegrityError):
+        seeded_db.commit()
+    seeded_db.rollback()
+
+
+def test_db_enforces_meeting_section_and_temporal_invariants(seeded_db: Session) -> None:
+    now = datetime(2026, 11, 11, 15, 0, tzinfo=UTC)
+    earlier = datetime(2026, 11, 11, 14, 0, tzinfo=UTC)
+
+    # section='ended' with ended_at=None must fail
+    seeded_db.add(
+        Meeting(
+            id="mt_bad_state",
+            team_id="team_sales",
+            facilitator_id="u6",
+            section="ended",
+            section_started_at=now,
+            started_at=now,
+            ended_at=None,
+            scorecard_week=date(2026, 11, 2),
+        )
+    )
+    with pytest.raises(IntegrityError):
+        seeded_db.commit()
+    seeded_db.rollback()
+
+    # ended_at < started_at must fail
+    seeded_db.add(
+        Meeting(
+            id="mt_bad_time",
+            team_id="team_sales",
+            facilitator_id="u6",
+            section="ended",
+            section_started_at=now,
+            started_at=now,
+            ended_at=earlier,
+            scorecard_week=date(2026, 11, 2),
+        )
+    )
+    with pytest.raises(IntegrityError):
+        seeded_db.commit()
+    seeded_db.rollback()
+
+
+def test_db_enforces_issue_solved_after_created_and_rock_quarter_format(
+    seeded_db: Session,
+) -> None:
+    seeded_db.add(
+        Issue(
+            id="i_bad_time",
+            team_id="team_lead",
+            title="Time travel solve",
+            owner_id="u2",
+            created_at=datetime(2026, 11, 11, 15, 0, tzinfo=UTC),
+            solved_at=datetime(2026, 11, 11, 14, 0, tzinfo=UTC),
+            resolution_note="Impossible timestamp order",
+        )
+    )
+    with pytest.raises(IntegrityError):
+        seeded_db.commit()
+    seeded_db.rollback()
+
+    seeded_db.add(
+        Rock(
+            id="r_bad_q",
+            team_id="team_lead",
+            title="Invalid quarter",
+            owner_id="u2",
+            quarter="2026-Q5",
+            seeded_status="on_track",
         )
     )
     with pytest.raises(IntegrityError):

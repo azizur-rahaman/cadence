@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, String, text
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,6 +19,15 @@ class Meeting(Base):
             "section IN ('scorecard', 'ids', 'conclude', 'ended')",
             name="meetings_section_valid",
         ),
+        CheckConstraint(
+            "(section = 'ended') = (ended_at IS NOT NULL)",
+            name="meetings_ended_state_consistent",
+        ),
+        CheckConstraint(
+            "ended_at IS NULL OR ended_at >= started_at",
+            name="meetings_ended_after_started",
+        ),
+        Index("ix_meetings_team_started_at", "team_id", text("started_at DESC")),
         Index(
             "uq_meetings_one_active_per_team",
             "team_id",
@@ -27,14 +36,14 @@ class Meeting(Base):
         ),
     )
 
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
     team_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("teams.id", ondelete="CASCADE"), nullable=False, index=True
+        Text, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False
     )
     facilitator_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+        Text, ForeignKey("users.id", ondelete="RESTRICT"), nullable=False, index=True
     )
-    section: Mapped[str] = mapped_column(String(32), nullable=False, default="scorecard")
+    section: Mapped[str] = mapped_column(Text, nullable=False, default="scorecard")
     section_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -43,12 +52,13 @@ class Meeting(Base):
 
 class MeetingAttendee(Base):
     __tablename__ = "meeting_attendees"
+    __table_args__ = (Index("ix_meeting_attendees_user_id", "user_id"),)
 
     meeting_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
+        Text, ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
     )
     user_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+        Text, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -57,13 +67,14 @@ class MeetingRating(Base):
     __tablename__ = "meeting_ratings"
     __table_args__ = (
         CheckConstraint("rating >= 1 AND rating <= 10", name="meeting_ratings_range"),
+        Index("ix_meeting_ratings_user_id", "user_id"),
     )
 
     meeting_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
+        Text, ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
     )
     user_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+        Text, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -73,7 +84,7 @@ class MeetingSummary(Base):
     __tablename__ = "meeting_summaries"
 
     meeting_id: Mapped[str] = mapped_column(
-        String(64), ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
+        Text, ForeignKey("meetings.id", ondelete="CASCADE"), primary_key=True
     )
     snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
