@@ -1,0 +1,94 @@
+"""Pure-Python business rules engine for Cadence (Level 10).
+
+Zero FastAPI or SQLAlchemy imports are permitted inside this package.
+"""
+
+from app.rules.issues import IssueRecord, order_unsolved_issues, ordered_unsolved_issue_ids
+from app.rules.meetings import (
+    NEXT_SECTION,
+    SECTION_ALLOTMENTS_SECONDS,
+    MeetingSection,
+    MeetingTimerState,
+    compute_meeting_rating,
+    compute_meeting_scorecard_week,
+    compute_timer_state,
+)
+from app.rules.rocks import (
+    MilestoneRecord,
+    RockEvaluation,
+    RockRecord,
+    RockStatus,
+    evaluate_rock,
+    is_milestone_past_due,
+)
+from app.rules.scorecard import (
+    GoalType,
+    MeasurableGoal,
+    MeasurableStatus,
+    evaluate_measurable_status,
+    format_issue_title_from_measurable,
+)
+from app.rules.time_utils import (
+    DEFAULT_TIMEZONE_NAME,
+    DEFAULT_TZ,
+    format_week_label,
+    get_company_tz,
+    last_13_weeks,
+    last_closed_week,
+    quarter_of,
+    round_half_up_1dp,
+    round_half_up_percent,
+    today_in_tz,
+    week_start_of,
+    week_start_of_date,
+)
+from app.rules.todos import (
+    TodoRecord,
+    TodoWeekCompletion,
+    compute_todo_completion_for_week,
+    is_todo_done_on_time,
+    is_todo_overdue,
+    overdue_todo_ids,
+)
+
+__all__ = [
+    "DEFAULT_TIMEZONE_NAME",
+    "DEFAULT_TZ",
+    "GoalType",
+    "IssueRecord",
+    "MeasurableGoal",
+    "MeasurableStatus",
+    "MeetingSection",
+    "MeetingTimerState",
+    "MilestoneRecord",
+    "NEXT_SECTION",
+    "RockEvaluation",
+    "RockRecord",
+    "RockStatus",
+    "SECTION_ALLOTMENTS_SECONDS",
+    "TodoRecord",
+    "TodoWeekCompletion",
+    "compute_meeting_rating",
+    "compute_meeting_scorecard_week",
+    "compute_timer_state",
+    "compute_todo_completion_for_week",
+    "evaluate_measurable_status",
+    "evaluate_rock",
+    "format_issue_title_from_measurable",
+    "format_week_label",
+    "get_company_tz",
+    "is_milestone_past_due",
+    "is_todo_done_on_time",
+    "is_todo_overdue",
+    "last_13_weeks",
+    "last_closed_week",
+    "order_unsolved_issues",
+    "ordered_unsolved_issue_ids",
+    "overdue_todo_ids",
+    "quarter_of",
+    "round_half_up_1dp",
+    "round_half_up_percent",
+    "today_in_tz",
+    "week_start_of",
+    "week_start_of_date",
+]
