@@ -49,17 +49,29 @@ def test_health_endpoint_uses_injected_clock() -> None:
     app.dependency_overrides[get_clock] = lambda: frozen
 
     client = TestClient(app)
-    res = client.get("/api/health")
+    res = client.get("/api/health", headers={"X-Request-Id": "req_health_01"})
     assert res.status_code == 200
+    assert res.headers["X-Request-Id"] == "req_health_01"
     assert res.json() == {
-        "status": "ok",
-        "now": "2026-11-11T15:00:00Z",
-        "app_now": "2026-11-11T15:00:00Z",
+        "success": True,
+        "data": {
+            "status": "ok",
+            "now": "2026-11-11T15:00:00Z",
+            "app_now": "2026-11-11T15:00:00Z",
+        },
+        "meta": {
+            "request_id": "req_health_01",
+            "timestamp": "2026-11-11T15:00:00Z",
+        },
     }
 
     frozen.advance(seconds=60)
     res2 = client.get("/api/health")
-    assert res2.json()["now"] == "2026-11-11T15:01:00Z"
+    body2 = res2.json()
+    assert body2["success"] is True
+    assert body2["data"]["now"] == "2026-11-11T15:01:00Z"
+    assert body2["meta"]["timestamp"] == "2026-11-11T15:01:00Z"
+    assert body2["meta"]["request_id"] == res2.headers["X-Request-Id"]
 
 
 def test_no_wall_clock_calls_outside_clock_module() -> None:

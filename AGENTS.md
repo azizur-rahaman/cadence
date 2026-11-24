@@ -61,6 +61,10 @@
 - **Database-Enforced Integrity:**
   - Enforce `CHECK` constraints (roles, priority `1..5`, rating `1..10`, goal shapes, non-empty titles & resolution notes) and both partial unique indexes (`issues` unsolved source + `meetings` one active per team) directly in PostgreSQL migrations.
   - "Make it an Issue" must remain atomic via `INSERT ... ON CONFLICT DO NOTHING` + `SELECT` (`201` created / `200` existing).
+- **Standard DTO & Response Envelope Contract (`apps/api/app/dto/`):**
+  - Every REST endpoint MUST accept/return explicit Pydantic DTOs from `apps/api/app/dto/` (never raw SQLAlchemy models or bare top-level JSON arrays).
+  - Every `2xx` REST response MUST be wrapped in `ApiResponse[T]` (`{success: true, data: T, meta: {request_id, timestamp}}`) via `ok(...)`; every `4xx`/`5xx` error MUST return `ApiErrorResponse` (`{success: false, error: {code, message, fields?}, meta: {request_id, timestamp}}`) with an `X-Request-Id` header.
+  - Real HTTP status codes remain the source of truth (`200`, `201`, `401`, `403`, `404`, `409`, `422`). The CLI `make report` JSON stays unwrapped verbatim per starter `README.md`.
 
 ---
 

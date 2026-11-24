@@ -1,11 +1,13 @@
 """FastAPI entrypoint for Cadence (Level 10)."""
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.clock import Clock, format_utc_iso, get_clock
 from app.config import get_settings
+from app.dto import ApiResponse, HealthDto, ok
 from app.errors import register_exception_handlers
+from app.middleware import RequestIdMiddleware
 from app.routers import auth, teams
 
 
@@ -18,23 +20,31 @@ def create_app() -> FastAPI:
         description="Weekly Team Meeting Platform (EOS / Level 10) REST & WebSocket API",
     )
 
+    app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-Id"],
     )
 
     register_exception_handlers(app)
 
-    @app.get("/api/health", tags=["System"])
-    def health(clock: Clock = Depends(get_clock)) -> dict[str, str]:
-        return {
-            "status": "ok",
-            "now": format_utc_iso(clock.now()),
-            "app_now": settings.app_now,
-        }
+    @app.get("/api/health", response_model=ApiResponse[HealthDto], tags=["System"])
+    def health(
+        request: Request, clock: Clock = Depends(get_clock)
+    ) -> ApiResponse[HealthDto]:
+        return ok(
+            HealthDto(
+                status="ok",
+                now=format_utc_iso(clock.now()),
+                app_now=settings.app_now,
+            ),
+            request=request,
+            clock=clock,
+        )
 
     app.include_router(auth.router, prefix="/api/v1")
     app.include_router(teams.router, prefix="/api/v1")

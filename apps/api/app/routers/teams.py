@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.auth.deps import (
@@ -12,48 +12,65 @@ from app.auth.deps import (
     list_accessible_teams,
     require_team_read,
 )
+from app.clock import Clock, get_clock
 from app.db import get_db
+from app.dto import (
+    ApiErrorResponse,
+    ApiResponse,
+    TeamDto,
+    TeamListDto,
+    UserDto,
+    UserListDto,
+    ok,
+)
 from app.models import User
-from app.schemas import ErrorResponse, TeamOut, UserOut
 
 router = APIRouter(prefix="/teams", tags=["Teams"])
 
 
 @router.get(
     "",
-    response_model=list[TeamOut],
-    responses={401: {"model": ErrorResponse}},
+    response_model=ApiResponse[TeamListDto],
+    responses={401: {"model": ApiErrorResponse}},
 )
 def list_teams(
+    request: Request,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-) -> list[TeamOut]:
+    clock: Clock = Depends(get_clock),
+) -> ApiResponse[TeamListDto]:
     """List teams accessible to the authenticated user (all teams for Admin)."""
     teams = list_accessible_teams(user, db)
-    return [TeamOut.model_validate(t) for t in teams]
+    payload = TeamListDto(items=[TeamDto.model_validate(t) for t in teams])
+    return ok(payload, request=request, clock=clock)
 
 
 @router.get(
     "/{team_id}",
-    response_model=TeamOut,
-    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    response_model=ApiResponse[TeamDto],
+    responses={401: {"model": ApiErrorResponse}, 404: {"model": ApiErrorResponse}},
 )
 def get_team(
+    request: Request,
     ctx: TeamAccessContext = Depends(require_team_read),
-) -> TeamOut:
+    clock: Clock = Depends(get_clock),
+) -> ApiResponse[TeamDto]:
     """Return team metadata if the authenticated user has read access (404 otherwise)."""
-    return TeamOut.model_validate(ctx.team)
+    return ok(TeamDto.model_validate(ctx.team), request=request, clock=clock)
 
 
 @router.get(
     "/{team_id}/owners",
-    response_model=list[UserOut],
-    responses={401: {"model": ErrorResponse}, 404: {"model": ErrorResponse}},
+    response_model=ApiResponse[UserListDto],
+    responses={401: {"model": ApiErrorResponse}, 404: {"model": ApiErrorResponse}},
 )
 def list_eligible_owners(
+    request: Request,
     ctx: TeamAccessContext = Depends(require_team_read),
     db: Session = Depends(get_db),
-) -> list[UserOut]:
+    clock: Clock = Depends(get_clock),
+) -> ApiResponse[UserListDto]:
     """List users eligible to own items in this team: (company Admins) U (team's Team Members)."""
     owners = get_eligible_team_owners(ctx.team.id, ctx.team.company_id, db)
-    return [UserOut.model_validate(u) for u in owners]
+    payload = UserListDto(items=[UserDto.model_validate(u) for u in owners])
+    return ok(payload, request=request, clock=clock)
