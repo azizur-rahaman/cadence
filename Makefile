@@ -73,7 +73,7 @@ typecheck:
 
 test:
 	@echo -e "${CYAN}==> Running pytest suite (frozen clock: $(APP_NOW))...${RESET}"
-	@docker compose run --rm --no-deps -e APP_NOW=$(APP_NOW) -e CLOCK_MODE=frozen api pytest -v
+	@docker compose run --rm -e APP_NOW=$(APP_NOW) -e CLOCK_MODE=frozen api pytest -v
 
 verify: lint typecheck test
 	@echo -e "${GREEN}==> make verify PASSED (0 errors)${RESET}"
