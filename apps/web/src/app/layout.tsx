@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { AppHeader } from "@/components/layout/AppHeader";
+import { AppProviders } from "@/providers/AppProviders";
 import "./globals.css";
 
 const inter = Inter({
@@ -10,7 +12,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Cadence (Level 10) — Weekly Team Meeting Platform",
-  description: "Measure. Commit. Resolve. Weekly EOS / Level 10 operating rhythm for leadership teams.",
+  description:
+    "Measure. Commit. Resolve. Weekly EOS / Level 10 operating rhythm for leadership teams.",
 };
 
 export default function RootLayout({
@@ -21,7 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
-        {children}
+        <AppProviders>
+          <AppHeader />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );
