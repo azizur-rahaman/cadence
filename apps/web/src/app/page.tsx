@@ -11,6 +11,7 @@ import {
   Target,
 } from "lucide-react";
 import { AccessErrorView } from "@/components/layout/AccessErrorView";
+import { ScorecardSection } from "@/components/sections/ScorecardSection";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { ApiClientError, fetchEligibleOwners, fetchHealth, fetchTeam } from "@/lib/api";
@@ -194,37 +195,43 @@ export default function TeamPage() {
       </nav>
 
       {/* Active Section Workspace */}
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
-        <Card>
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-lg font-semibold text-foreground">{currentSection.label}</h2>
-            <Badge variant="info">Phase 1 Shell Ready</Badge>
-          </div>
-          <p className="mt-2 text-sm text-[#475569]">{currentSection.description}</p>
-          <p className="mt-4 rounded-md border border-dashed border-border-strong bg-background px-4 py-3 text-xs text-[#64748B]">
-            {currentSection.phaseNote}
-          </p>
-        </Card>
+      <section className="mt-6">
+        {activeTab === "scorecard" && activeTeamId ? (
+          <ScorecardSection teamId={activeTeamId} readOnly={isObserver} />
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+            <Card>
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-lg font-semibold text-foreground">{currentSection.label}</h2>
+                <Badge variant="info">Coming in Phase 3</Badge>
+              </div>
+              <p className="mt-2 text-sm text-[#475569]">{currentSection.description}</p>
+              <p className="mt-4 rounded-md border border-dashed border-border-strong bg-background px-4 py-3 text-xs text-[#64748B]">
+                {currentSection.phaseNote}
+              </p>
+            </Card>
 
-        <Card>
-          <h3 className="text-sm font-semibold text-foreground">Eligible Item Owners</h3>
-          <p className="mt-1 text-xs text-[#64748B]">
-            Server-computed: (All Company Admins) ∪ (Team Members)
-          </p>
-          <ul className="mt-3 space-y-2">
-            {(ownersQuery.data ?? []).map((owner) => (
-              <li
-                key={owner.id}
-                className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-              >
-                <span className="font-medium text-foreground">{owner.name}</span>
-                <Badge variant={owner.role === "admin" ? "info" : "neutral"}>
-                  {formatRoleLabel(owner.role)}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </Card>
+            <Card>
+              <h3 className="text-sm font-semibold text-foreground">Eligible Item Owners</h3>
+              <p className="mt-1 text-xs text-[#64748B]">
+                Server-computed: (All Company Admins) ∪ (Team Members)
+              </p>
+              <ul className="mt-3 space-y-2">
+                {(ownersQuery.data ?? []).map((owner) => (
+                  <li
+                    key={owner.id}
+                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium text-foreground">{owner.name}</span>
+                    <Badge variant={owner.role === "admin" ? "info" : "neutral"}>
+                      {formatRoleLabel(owner.role)}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        )}
       </section>
     </main>
   );
