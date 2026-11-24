@@ -12,11 +12,12 @@ import {
 } from "lucide-react";
 import { AccessErrorView } from "@/components/layout/AccessErrorView";
 import { IssuesSection } from "@/components/sections/IssuesSection";
+import { RocksSection } from "@/components/sections/RocksSection";
 import { ScorecardSection } from "@/components/sections/ScorecardSection";
 import { TodosSection } from "@/components/sections/TodosSection";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
-import { ApiClientError, fetchEligibleOwners, fetchHealth, fetchTeam } from "@/lib/api";
+import { ApiClientError, fetchHealth, fetchTeam } from "@/lib/api";
 import { cn, formatRoleLabel } from "@/lib/utils";
 import { useSession } from "@/providers/AppProviders";
 
@@ -25,38 +26,12 @@ type SectionTab = "scorecard" | "issues" | "todos" | "rocks";
 const SECTION_TABS: Array<{
   id: SectionTab;
   label: string;
-  description: string;
-  phaseNote: string;
   icon: ComponentType<{ className?: string }>;
 }> = [
-  {
-    id: "scorecard",
-    label: "Scorecard",
-    description: "13-week Measurables grid with inline score editing and atomic Make it an Issue.",
-    phaseNote: "Lands in Phase 3 — Branch 3.1 (feat/p3-scorecard)",
-    icon: ChartNoAxesCombined,
-  },
-  {
-    id: "issues",
-    label: "Issues",
-    description: "Priority-ordered unsolved Issues, Solve with required note, and Add To-Do.",
-    phaseNote: "Lands in Phase 3 — Branch 3.2 (feat/p3-issues-and-todos)",
-    icon: AlertCircle,
-  },
-  {
-    id: "todos",
-    label: "To-Dos",
-    description: "Weekly action items with overdue flags, done/undo toggle, and 90% target rate.",
-    phaseNote: "Lands in Phase 3 — Branch 3.2 (feat/p3-issues-and-todos)",
-    icon: ListChecks,
-  },
-  {
-    id: "rocks",
-    label: "Rocks",
-    description: "Read-only current-quarter Rocks with computed status, progress %, and Milestones.",
-    phaseNote: "Lands in Phase 3 — Branch 3.3 (feat/p3-rocks)",
-    icon: Target,
-  },
+  { id: "scorecard", label: "Scorecard", icon: ChartNoAxesCombined },
+  { id: "issues", label: "Issues", icon: AlertCircle },
+  { id: "todos", label: "To-Dos", icon: ListChecks },
+  { id: "rocks", label: "Rocks", icon: Target },
 ];
 
 export default function TeamPage() {
@@ -82,12 +57,6 @@ export default function TeamPage() {
     enabled: Boolean(token && activeTeamId),
     retry: false,
     queryFn: async () => (await fetchTeam(token!, activeTeamId!)).data,
-  });
-
-  const ownersQuery = useQuery({
-    queryKey: ["team-owners", activeTeamId, user?.id],
-    enabled: Boolean(token && activeTeamId && teamQuery.isSuccess),
-    queryFn: async () => (await fetchEligibleOwners(token!, activeTeamId!)).data.items,
   });
 
   if (isLoadingSession) {
@@ -126,7 +95,6 @@ export default function TeamPage() {
     );
   }
 
-  const currentSection = SECTION_TABS.find((t) => t.id === activeTab) ?? SECTION_TABS[0];
   const isObserver = user?.role === "observer";
 
   return (
@@ -204,40 +172,9 @@ export default function TeamPage() {
           <IssuesSection teamId={activeTeamId} readOnly={isObserver} />
         ) : activeTab === "todos" && activeTeamId ? (
           <TodosSection teamId={activeTeamId} readOnly={isObserver} />
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-            <Card>
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold text-foreground">{currentSection.label}</h2>
-                <Badge variant="info">Coming in Phase 3</Badge>
-              </div>
-              <p className="mt-2 text-sm text-[#475569]">{currentSection.description}</p>
-              <p className="mt-4 rounded-md border border-dashed border-border-strong bg-background px-4 py-3 text-xs text-[#64748B]">
-                {currentSection.phaseNote}
-              </p>
-            </Card>
-
-            <Card>
-              <h3 className="text-sm font-semibold text-foreground">Eligible Item Owners</h3>
-              <p className="mt-1 text-xs text-[#64748B]">
-                Server-computed: (All Company Admins) ∪ (Team Members)
-              </p>
-              <ul className="mt-3 space-y-2">
-                {(ownersQuery.data ?? []).map((owner) => (
-                  <li
-                    key={owner.id}
-                    className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
-                  >
-                    <span className="font-medium text-foreground">{owner.name}</span>
-                    <Badge variant={owner.role === "admin" ? "info" : "neutral"}>
-                      {formatRoleLabel(owner.role)}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </div>
-        )}
+        ) : activeTab === "rocks" && activeTeamId ? (
+          <RocksSection teamId={activeTeamId} />
+        ) : null}
       </section>
     </main>
   );

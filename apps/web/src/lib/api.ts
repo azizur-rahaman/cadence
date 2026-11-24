@@ -7,6 +7,7 @@ import type {
   LoginResponseDto,
   MakeIssueFromMeasurableResponseDto,
   ResponseMeta,
+  RockListDto,
   ScorecardResponseDto,
   TeamDto,
   TeamListDto,
@@ -223,4 +224,8 @@ export function toggleTodoDone(token: string, todoId: string, done: boolean) {
     token,
     body: { done },
   });
+}
+
+export function fetchRocks(token: string, teamId: string) {
+  return apiFetch<RockListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/rocks`, { token });
 }

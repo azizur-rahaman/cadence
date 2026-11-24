@@ -165,3 +165,32 @@ export interface TodoListDto {
   weekly_completion: Record<string, TodoWeekCompletionDto | null>;
   items: TodoDto[];
 }
+
+export type RockStatus = "on_track" | "off_track" | "complete";
+
+export interface MilestoneDto {
+  id: string;
+  title: string;
+  due_date: string;
+  done: boolean;
+  is_past_due: boolean;
+}
+
+export interface RockDto {
+  id: string;
+  team_id: string;
+  title: string;
+  owner_id: string;
+  owner_name: string;
+  quarter: string;
+  status: RockStatus;
+  progress_percent: number;
+  milestones: MilestoneDto[];
+}
+
+export interface RockListDto {
+  team_id: string;
+  quarter: string;
+  today: string;
+  items: RockDto[];
+}
