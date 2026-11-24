@@ -126,3 +126,42 @@ export interface MakeIssueFromMeasurableResponseDto {
   created: boolean;
   issue: IssueDto;
 }
+
+export interface IssueListDto {
+  unsolved: IssueDto[];
+  solved: IssueDto[];
+}
+
+export interface TodoDto {
+  id: string;
+  team_id: string;
+  title: string;
+  owner_id: string;
+  owner_name: string;
+  due_date: string;
+  done_at: string | null;
+  is_overdue: boolean;
+  source_issue_id: string | null;
+  created_at: string;
+  meeting_id: string | null;
+}
+
+export interface TodoWeekCompletionDto {
+  week_start: string;
+  due: number;
+  done: number;
+  rate_percent: number;
+  meets_target: boolean;
+}
+
+export interface TodoListDto {
+  team_id: string;
+  today: string;
+  current_week_start: string;
+  last_closed_week_start: string;
+  overdue_count: number;
+  current_week_completion: TodoWeekCompletionDto | null;
+  last_closed_week_completion: TodoWeekCompletionDto | null;
+  weekly_completion: Record<string, TodoWeekCompletionDto | null>;
+  items: TodoDto[];
+}

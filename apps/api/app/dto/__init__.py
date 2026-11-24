@@ -19,7 +19,14 @@ from app.dto.envelope import (
     build_meta,
     ok,
 )
-from app.dto.issues import IssueDto, IssueSourceDto
+from app.dto.issues import (
+    CreateIssueRequestDto,
+    IssueDto,
+    IssueListDto,
+    IssueSourceDto,
+    SolveIssueRequestDto,
+    UpdateIssuePriorityRequestDto,
+)
 from app.dto.scorecard import (
     GoalTypeDto,
     MakeIssueFromMeasurableRequestDto,
@@ -32,14 +39,24 @@ from app.dto.scorecard import (
     UpsertScoreRequestDto,
     UpsertScoreResponseDto,
 )
+from app.dto.todos import (
+    CreateTodoRequestDto,
+    TodoDto,
+    TodoListDto,
+    TodoWeekCompletionDto,
+    ToggleTodoDoneRequestDto,
+)
 
 __all__ = [
     "ApiErrorResponse",
     "ApiResponse",
+    "CreateIssueRequestDto",
+    "CreateTodoRequestDto",
     "ErrorDetailDto",
     "GoalTypeDto",
     "HealthDto",
     "IssueDto",
+    "IssueListDto",
     "IssueSourceDto",
     "LoginRequestDto",
     "LoginResponseDto",
@@ -52,8 +69,14 @@ __all__ = [
     "RoleType",
     "ScoreCellDto",
     "ScorecardResponseDto",
+    "SolveIssueRequestDto",
     "TeamDto",
     "TeamListDto",
+    "TodoDto",
+    "TodoListDto",
+    "TodoWeekCompletionDto",
+    "ToggleTodoDoneRequestDto",
+    "UpdateIssuePriorityRequestDto",
     "UpsertScoreRequestDto",
     "UpsertScoreResponseDto",
     "UserDto",
