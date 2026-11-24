@@ -13,7 +13,7 @@ YELLOW := \033[33m
 CYAN   := \033[36m
 RESET  := \033[0m
 
-.PHONY: help up down restart logs status seed report lint typecheck test verify ports
+.PHONY: help up down restart logs status seed report lint typecheck test test-e2e verify ports
 
 help:
 	@echo ""
@@ -36,6 +36,7 @@ help:
 	@echo -e "  ${CYAN}make lint${RESET}       Run ruff static checks on apps/api"
 	@echo -e "  ${CYAN}make typecheck${RESET}  Run TypeScript strict compiler check (tsc --noEmit)"
 	@echo -e "  ${CYAN}make test${RESET}       Run automated test suite unattended (frozen clock)"
+	@echo -e "  ${CYAN}make test-e2e${RESET}   Run two-browser Playwright E2E suite against live stack"
 	@echo -e "  ${CYAN}make verify${RESET}     Compulsory pre-PR gate (lint + typecheck + test)"
 	@echo -e "  ${CYAN}make ports${RESET}      Check listening status of ports 3000, 8000, 5432"
 	@echo ""
@@ -74,6 +75,10 @@ typecheck:
 test:
 	@echo -e "${CYAN}==> Running pytest suite (frozen clock: $(APP_NOW))...${RESET}"
 	@docker compose run --rm -e APP_NOW=$(APP_NOW) -e CLOCK_MODE=frozen api pytest -v
+
+test-e2e:
+	@echo -e "${CYAN}==> Running two-browser Playwright E2E suite...${RESET}"
+	@cd e2e && npm test
 
 verify: lint typecheck test
 	@echo -e "${GREEN}==> make verify PASSED (0 errors)${RESET}"
