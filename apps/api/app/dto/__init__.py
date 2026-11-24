@@ -27,6 +27,16 @@ from app.dto.issues import (
     SolveIssueRequestDto,
     UpdateIssuePriorityRequestDto,
 )
+from app.dto.meetings import (
+    ActiveMeetingResponseDto,
+    MeetingAttendeeDto,
+    MeetingRatingDto,
+    MeetingSectionDto,
+    MeetingStateDto,
+    MeetingSummarySnapshotDto,
+    MeetingTimerDto,
+    SubmitRatingRequestDto,
+)
 from app.dto.rocks import MilestoneDto, RockDto, RockListDto, RockStatusDto
 from app.dto.scorecard import (
     GoalTypeDto,
@@ -49,6 +59,7 @@ from app.dto.todos import (
 )
 
 __all__ = [
+    "ActiveMeetingResponseDto",
     "ApiErrorResponse",
     "ApiResponse",
     "CreateIssueRequestDto",
@@ -66,6 +77,12 @@ __all__ = [
     "MeasurableGoalDto",
     "MeasurableRowDto",
     "MeasurableStatusDto",
+    "MeetingAttendeeDto",
+    "MeetingRatingDto",
+    "MeetingSectionDto",
+    "MeetingStateDto",
+    "MeetingSummarySnapshotDto",
+    "MeetingTimerDto",
     "MilestoneDto",
     "ResponseMetaDto",
     "RockDto",
@@ -75,6 +92,7 @@ __all__ = [
     "ScoreCellDto",
     "ScorecardResponseDto",
     "SolveIssueRequestDto",
+    "SubmitRatingRequestDto",
     "TeamDto",
     "TeamListDto",
     "TodoDto",
