@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,6 +34,7 @@ from app.dto import (
 )
 from app.errors import AppError
 from app.models import Company, Issue, Meeting, Todo, User
+from app.realtime.hub import notify_team_workspace_change
 from app.rules import (
     IssueRecord,
     TodoRecord,
@@ -146,6 +147,7 @@ def list_team_issues(
 def create_issue(
     body: CreateIssueRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     ctx: TeamAccessContext = Depends(require_team_write),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -170,6 +172,7 @@ def create_issue(
     db.commit()
     db.refresh(issue)
 
+    notify_team_workspace_change(background_tasks, ctx.team.id, "issues", db)
     return ok(_issue_to_dto(issue, owner.name), request=request, clock=clock)
 
 
@@ -188,6 +191,7 @@ def update_issue_priority(
     issue_id: str,
     body: UpdateIssuePriorityRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -209,6 +213,7 @@ def update_issue_priority(
 
     owner = db.get(User, issue.owner_id)
     owner_name = owner.name if owner is not None else issue.owner_id
+    notify_team_workspace_change(background_tasks, issue.team_id, "issues", db)
     return ok(_issue_to_dto(issue, owner_name), request=request, clock=clock)
 
 
@@ -227,6 +232,7 @@ def solve_issue(
     issue_id: str,
     body: SolveIssueRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -245,6 +251,7 @@ def solve_issue(
 
     owner = db.get(User, issue.owner_id)
     owner_name = owner.name if owner is not None else issue.owner_id
+    notify_team_workspace_change(background_tasks, issue.team_id, "issues", db)
     return ok(_issue_to_dto(issue, owner_name), request=request, clock=clock)
 
 
@@ -263,6 +270,7 @@ def create_todo_from_issue(
     issue_id: str,
     body: CreateTodoRequestDto,
     request: Request,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     clock: Clock = Depends(get_clock),
@@ -315,4 +323,5 @@ def create_todo_from_issue(
         created_at=todo.created_at,
         meeting_id=todo.meeting_id,
     )
+    notify_team_workspace_change(background_tasks, team.id, "todos", db)
     return ok(dto, request=request, clock=clock)

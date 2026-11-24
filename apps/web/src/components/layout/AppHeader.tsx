@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { UserCircle, Users, Video } from "lucide-react";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { fetchActiveMeeting, startMeeting } from "@/lib/api";
 import type { RoleType } from "@/lib/types";
 import { formatRoleLabel } from "@/lib/utils";
 import { useSession } from "@/providers/AppProviders";
@@ -15,7 +18,10 @@ function roleBadgeVariant(role: RoleType): BadgeVariant {
 }
 
 export function AppHeader() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const {
+    token,
     user,
     seededUsers,
     teams,
@@ -27,6 +33,23 @@ export function AppHeader() {
   } = useSession();
 
   const isObserver = user?.role === "observer";
+
+  const activeMeetingQuery = useQuery({
+    queryKey: ["active-meeting", activeTeamId, user?.id],
+    enabled: Boolean(token && activeTeamId),
+    refetchInterval: 5000,
+    queryFn: async () => (await fetchActiveMeeting(token!, activeTeamId!)).data.meeting,
+  });
+
+  const startMeetingMutation = useMutation({
+    mutationFn: async () => (await startMeeting(token!, activeTeamId!)).data,
+    onSuccess: (created) => {
+      void queryClient.invalidateQueries({ queryKey: ["active-meeting", activeTeamId] });
+      router.push(`/meetings/${created.id}`);
+    },
+  });
+
+  const activeMeeting = activeMeetingQuery.data ?? null;
 
   return (
     <header className="sticky top-0 z-30 h-16 border-b border-border bg-surface">
@@ -77,20 +100,34 @@ export function AppHeader() {
 
         {/* Right: Live Meeting CTA + Seeded User Switcher */}
         <div className="flex items-center gap-3">
-          <Button
-            variant="primary"
-            size="sm"
-            disabled={isLoadingSession || isObserver || !activeTeamId}
-            title={
-              isObserver
-                ? "Observers cannot start a Level 10 Meeting (join when active)"
-                : "Live Level 10 Meeting launches in Phase 4"
-            }
-            className="hidden md:inline-flex"
-          >
-            <Video className="h-4 w-4" aria-hidden="true" />
-            Start Level 10
-          </Button>
+          {activeMeeting ? (
+            <Link href={`/meetings/${activeMeeting.id}`}>
+              <Button variant="primary" size="sm" className="bg-[#059669] hover:bg-[#047857]">
+                <span className="h-2 w-2 rounded-full bg-white" aria-hidden="true" />
+                Join Live Meeting
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={
+                isLoadingSession ||
+                isObserver ||
+                !activeTeamId ||
+                startMeetingMutation.isPending
+              }
+              title={
+                isObserver
+                  ? "Observers cannot start a Level 10 Meeting (join when active)"
+                  : "Start a live Level 10 Meeting for this team"
+              }
+              onClick={() => startMeetingMutation.mutate()}
+            >
+              <Video className="h-4 w-4" aria-hidden="true" />
+              {startMeetingMutation.isPending ? "Starting..." : "Start Level 10"}
+            </Button>
+          )}
 
           <div className="flex items-center gap-2">
             <UserCircle className="h-4 w-4 shrink-0 text-[#64748B]" aria-hidden="true" />
