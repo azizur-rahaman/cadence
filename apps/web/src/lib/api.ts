@@ -3,9 +3,12 @@ import type {
   ApiResponse,
   HealthDto,
   LoginResponseDto,
+  MakeIssueFromMeasurableResponseDto,
   ResponseMeta,
+  ScorecardResponseDto,
   TeamDto,
   TeamListDto,
+  UpsertScoreResponseDto,
   UserListDto,
   UserWithTeamsDto,
 } from "./types";
@@ -120,4 +123,44 @@ export function fetchTeam(token: string, teamId: string) {
 
 export function fetchEligibleOwners(token: string, teamId: string) {
   return apiFetch<UserListDto>(`/api/v1/teams/${encodeURIComponent(teamId)}/owners`, { token });
+}
+
+export function fetchScorecard(token: string, teamId: string) {
+  return apiFetch<ScorecardResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/scorecard`,
+    { token },
+  );
+}
+
+export function upsertScore(
+  token: string,
+  teamId: string,
+  measurableId: string,
+  weekStart: string,
+  value: number,
+) {
+  return apiFetch<UpsertScoreResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/measurables/${encodeURIComponent(measurableId)}/scores/${encodeURIComponent(weekStart)}`,
+    {
+      method: "PUT",
+      token,
+      body: { value },
+    },
+  );
+}
+
+export function makeIssueFromMeasurable(
+  token: string,
+  teamId: string,
+  measurableId: string,
+  weekStart: string,
+) {
+  return apiFetch<MakeIssueFromMeasurableResponseDto>(
+    `/api/v1/teams/${encodeURIComponent(teamId)}/issues/from-measurable`,
+    {
+      method: "POST",
+      token,
+      body: { measurable_id: measurableId, week_start: weekStart },
+    },
+  );
 }
