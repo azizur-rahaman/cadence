@@ -13,7 +13,7 @@ YELLOW := \033[33m
 CYAN   := \033[36m
 RESET  := \033[0m
 
-.PHONY: help up down restart logs status seed report lint typecheck test test-e2e verify ports
+.PHONY: help up down restart logs status seed report lint typecheck test test-e2e verify run ports
 
 help:
 	@echo ""
@@ -23,6 +23,7 @@ help:
 	@echo ""
 	@echo -e "${BOLD}Docker Compose Stack:${RESET}"
 	@echo -e "  ${CYAN}make up${RESET}         Build & start Postgres, API (:8000) and Web (:3000)"
+	@echo -e "  ${CYAN}make run${RESET}        Start full stack (up) + run all checks & E2E (run-all.py)"
 	@echo -e "  ${CYAN}make down${RESET}       Stop containers (add -v manually to wipe DB volume)"
 	@echo -e "  ${CYAN}make restart${RESET}    Restart all stack containers"
 	@echo -e "  ${CYAN}make status${RESET}     Show container health status"
@@ -82,6 +83,11 @@ test-e2e:
 
 verify: lint typecheck test
 	@echo -e "${GREEN}==> make verify PASSED (0 errors)${RESET}"
+
+run: up
+	@echo -e "${CYAN}==> Running full verification suite (docs/test/run-all.py)...${RESET}"
+	@python3 docs/test/run-all.py
+	@echo -e "${GREEN}==> Stack is running: Web http://localhost:3000 | API http://localhost:8000/docs${RESET}"
 
 ports:
 	@echo -e "${BOLD}Port Status:${RESET}"
